@@ -32,6 +32,7 @@ PUT | /v1/users/activated | Activate a specific user
 PUT | /v1/users/password | Update the password for a specific user
 POST | /v1/tokens/authentication | Generate a new authentication token
 POST | /v1/tokens/password-reset | Generate a new password-reset token
+GET | /debug/vars | Display application metrics
 
 ## Development
 
