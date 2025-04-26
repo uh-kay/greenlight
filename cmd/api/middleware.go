@@ -4,13 +4,13 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/tomasen/realip"
 	"github.com/uh-kay/greenlight/internal/data"
 	"github.com/uh-kay/greenlight/internal/validator"
 	"golang.org/x/time/rate"
@@ -59,11 +59,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if app.config.limiter.enabled {
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				app.serverErrorResponse(w, r, err)
-				return
-			}
+			ip := realip.FromRequest(r)
 
 			mu.Lock()
 
@@ -73,6 +69,8 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 				}
 			}
 
+			clients[ip].lastSeen = time.Now()
+
 			if !clients[ip].limiter.Allow() {
 				mu.Unlock()
 				app.rateLimitExceededResponse(w, r)
@@ -80,9 +78,9 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 			}
 
 			mu.Unlock()
-
-			next.ServeHTTP(w, r)
 		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
